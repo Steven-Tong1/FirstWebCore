@@ -32,6 +32,7 @@ namespace FirstWebCore.DAL
       {
         try
         {
+
           //2.创建command 传入 sql跟链接conn
           SqlCommand cmd = new SqlCommand(sql,conn);
           cmd.Parameters.AddRange(parameters);
