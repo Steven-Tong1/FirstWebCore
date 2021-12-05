@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FirstWebCore.Model\FirstWebCore.Model.csproj" />
+    <ProjectReference Include="..\FirstWebCore.Uility\FirstWebCore.Framework.csproj" />
+  </ItemGroup>
+
+</Project>
