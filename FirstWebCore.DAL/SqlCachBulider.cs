@@ -31,7 +31,6 @@ namespace FirstWebCore.DAL
             var selectColunmString = string.Join(",", type.GetProperties().Select(p => $"[{p.GetMappingName()}] as [{p.Name}]"));
             _SelectSql = $@"select {selectColunmString} from [{type.GetMappingName()}] where id=@id";
 
-
             //需要解决sql注入不然就完蛋
             //1.数据转换 2.参数化 3.orm
             var columnString = string.Join(",", type.GetPropWithNoKey().Select(x => $"[{x.GetMappingName()}]"));

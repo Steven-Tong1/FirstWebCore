@@ -1,5 +1,6 @@
 using FirstWebCore.DAL;
 using System;
+using System.Linq.Expressions;
 using Zhaoxi.CustomORMDemo.Model;
 
 namespace FirstWebCore.UI
@@ -42,12 +43,19 @@ namespace FirstWebCore.UI
                 //Console.WriteLine($"*********Update {(isOk? "成功":" 失败")}*********");
             }
             {
-                Console.WriteLine("*********Delete*********");
-                var company = new CompanyModel();
-                company.Id = 11;
-                var isOk = helper.Delete<CompanyModel>(company);
+                //Console.WriteLine("*********Delete*********");
+                //var company = new CompanyModel();
+                //company.Id = 11;
+                //var isOk = helper.Delete<CompanyModel>(company);
 
-                Console.WriteLine($"*********Delete {(isOk ? "成功" : " 失败")}*********");
+                //Console.WriteLine($"*********Delete {(isOk ? "成功" : " 失败")}*********");
+            }
+            {
+                //Expression<Func<CompanyModel, bool>> expression = a => a.Id == 10 && (a.Name.Contains("11") || a.Name != "");
+                //helper.DeleteCondition<CompanyModel>(expression);
+
+                Expression<Func<CompanyModel,bool>> expressionFind = a => a.Id == 1 && (a.Name.Contains("11") || a.Name != "");
+                var company = helper.FindCondition<CompanyModel>(expressionFind);
             }
         }
     }

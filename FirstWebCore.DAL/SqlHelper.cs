@@ -1,3 +1,4 @@
+using FirstWebCore.DAL.ExpressionExtend;
 using FirstWebCore.Framework;
 using FirstWebCore.Framework.Uility;
 using FirstWebCore.Framework.Uility.Validate;
@@ -5,6 +6,7 @@ using FirstWebCore.Model;
 using System;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace FirstWebCore.DAL
 {
@@ -12,9 +14,22 @@ namespace FirstWebCore.DAL
     {
         private static string connectionString = ConfigurationManager.SqlConnectionStringCustom;
 
+        private static CustomExpressionVisitor visitor = null;
+
+        public static object _Object = null;
         //先写一个查询的通过反射进行动态拼接字符串实现查找
         //1.where T:BaseModel 基于泛型约束
 
+        public SqlHelper()
+        {
+            //lock (_Object)
+            //{
+                if (visitor == null)
+                {
+                    visitor = new CustomExpressionVisitor();
+                }
+            //}
+        }
 
 
         #region 代码坏的味道，一段代码中多个重复，可以想办法进行封装
@@ -219,56 +234,16 @@ namespace FirstWebCore.DAL
                 }
                 return default(T);
             });
-            //ado操作数据库
-            //1.创建链接
-            //using (SqlConnection conn = new SqlConnection(connectionString))
-            //{
-            //    try
-            //    {
-
-            //        //2.创建command 传入 sql跟链接conn
-            //        SqlCommand cmd = new SqlCommand(sql, conn);
-            //        cmd.Parameters.AddRange(parameters);
-            //        //3.打开链接
-            //        conn.Open();
-
-
-            //        var read = cmd.ExecuteReader();
-            //        if (read.Read())
-            //        {
-            //            //如果获取到了对应的数据
-            //            T t = Activator.CreateInstance<T>();
-
-            //            //需要给对应的对象进行赋值？
-            //            //通过反射然后去循环赋值
-            //            foreach (var prop in type.GetProperties())
-            //            {
-            //                //循环遍历所有的属性
-            //                //反射属性赋值 SetValue 给对象赋值
-            //                //var propName = prop.GetMappingColumnName();
-
-            //                prop.SetValue(t, read[prop.Name] is DBNull ? null : read[prop.Name]); //思考如果是数据库中有数据为NULL，需要判断null，   
-            //            }
-
-            //            //最后输出
-            //            return t;
-            //        }
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        //异常就返回null
-            //        return null;
-            //    }
-            //    finally
-            //    {
-            //        conn.Close();
-            //    }
-            //}
-
-            return null;
+            
+            return data;
         }
 
-
+        /// <summary>
+        /// 插入
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="t"></param>
+        /// <returns></returns>
         public bool Insert<T>(T t) where T : BaseModel, new()
         {
             if (!t.ValidateData())
@@ -330,7 +305,8 @@ namespace FirstWebCore.DAL
                 try
                 {
                     SqlCommand cmd = new SqlCommand(sql, conn);
-                    cmd.Parameters.AddRange(parameters);
+                    if(parameters != null && parameters.Length > 0)
+                        cmd.Parameters.AddRange(parameters);
                     conn.Open();
                     return func.Invoke(cmd);
                 }
@@ -344,6 +320,85 @@ namespace FirstWebCore.DAL
                     conn.Close();
                 }
             }
+        }
+
+        /// <summary>
+        /// 根据条件进行删除
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public bool DeleteCondition<T>(Expression<Func<T,bool>> expression)
+        {
+            Type type = typeof(T);
+            visitor.Visit(expression);
+            var strWhere = visitor.GetWhere();
+            var sql = $" Delete From [{type.GetMappingName()}] Where {strWhere}";
+            
+            return this.ExcuteSql<bool>(sql, null, cmd => cmd.ExecuteNonQuery() > 0);
+        }
+
+        /// <summary>
+        /// 根据条件更新
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public bool UpdateCondition<T>(Expression<Func<T, bool>> expression) where T : BaseModel, new()
+        {
+            //加入特性校验
+            Type type = typeof(T);
+            T t = new T();//Activator.CreateInstance(type);
+
+            if (!t.ValidateData())
+                return false;
+
+            visitor.Visit(expression);
+            var strWhere = visitor.GetWhere();
+            var updateColunmString = string.Join(",", type.GetPropWithNoKey().Select(a => $"[{a.GetMappingName()}]=@{a.GetMappingName()}"));
+            var sql = $" Update [{type.GetMappingName()}] set {updateColunmString} where {strWhere}";
+            
+            return this.ExcuteSql<bool>(sql, null, cmd => cmd.ExecuteNonQuery() > 0);
+        }
+
+        /// <summary>
+        /// 根据条件返回数据
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public T FindCondition<T>(Expression<Func<T,bool>> expression) where T : BaseModel, new()
+        {
+            //反射三部曲
+            Type type = typeof(T);
+            visitor.Visit(expression);
+            var strWhere = visitor.GetWhere();
+            var selectColunmString = string.Join(",", type.GetProperties().Select(p => $"[{p.GetMappingName()}] as [{p.Name}]"));
+            var sql = $@"select {selectColunmString} from [{type.GetMappingName()}] where {strWhere}";
+            
+            var data = this.ExcuteSql<T>(sql, null, cmd =>
+            {
+                var read = cmd.ExecuteReader();
+                if (read.Read())
+                {
+                    //如果获取到了对应的数据
+                    T t = Activator.CreateInstance<T>();
+
+                    //需要给对应的对象进行赋值？
+                    //通过反射然后去循环赋值
+                    foreach (var prop in type.GetProperties())
+                    {
+                        //循环遍历所有的属性
+                        //反射属性赋值 SetValue 给对象赋值
+                        //var propName = prop.GetMappingColumnName();
+                        prop.SetValue(t, read[prop.Name] is DBNull ? null : read[prop.Name]); //思考如果是数据库中有数据为NULL，需要判断null，   
+                    }
+                    return t;
+                }
+                return default(T);
+            });
+
+            return data;
         }
 
         #endregion
