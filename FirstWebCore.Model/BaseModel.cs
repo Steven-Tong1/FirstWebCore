@@ -3,10 +3,10 @@ using System;
 
 namespace FirstWebCore.Model
 {
-  public class BaseModel
-  {
-    [TableKey]
-    public int Id { get; set; }
+    public class BaseModel
+    {
+        [TableKey]
+        public int Id { get; set; }
 
-  }
+    }
 }

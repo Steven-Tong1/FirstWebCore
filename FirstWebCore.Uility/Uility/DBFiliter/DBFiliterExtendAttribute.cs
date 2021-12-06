@@ -6,11 +6,11 @@ using System.Linq;
 
 namespace FirstWebCore.Framework.Uility
 {
-  public static class DBFiliterExtendAttribute
-  {
-    public static IEnumerable<PropertyInfo> GetPropWithNoKey(this Type type)
+    public static class DBFiliterExtendAttribute
     {
-      return type.GetProperties().Where(x=>!x.IsDefined(typeof(TableKeyAttribute),true));
+        public static IEnumerable<PropertyInfo> GetPropWithNoKey(this Type type)
+        {
+            return type.GetProperties().Where(x => !x.IsDefined(typeof(TableKeyAttribute), true));
+        }
     }
-  }
 }

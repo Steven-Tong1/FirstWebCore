@@ -1,13 +1,17 @@
 using FirstWebCore.Model;
 using System;
 using FirstWebCore.Framework.Uility;
+using FirstWebCore.Framework.Uility.Validate;
 
 namespace Zhaoxi.CustomORMDemo.Model
 {
     [TableName("User")]
     public class UserModel : BaseModel
     {
+        [Required]
+        [DataLength(2,10)]
         public string Name { get; set; }
+
         public string Account { get; set; }
         public string Password { get; set; }
         public string Email { get; set; }
